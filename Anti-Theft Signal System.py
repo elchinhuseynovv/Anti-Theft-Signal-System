@@ -59,13 +59,14 @@ class AntiTheftGUI:
     def __init__(self, root):
         self.root = root
         self.root.title("Supermarket Anti-Theft System")
-        self.root.geometry("1000x800")
+        self.root.geometry("1000x900")  # Increased height for new elements
         self.root.configure(bg='#f0f0f0')
 
         # Custom fonts
         self.header_font = font.Font(size=12, weight='bold')
         self.text_font = font.Font(size=10)
         self.log_font = font.Font(size=11, family='Courier')
+        self.status_font = font.Font(size=12, weight='bold')
 
         # Available items in the store
         self.available_items = [
@@ -88,6 +89,9 @@ class AntiTheftGUI:
         # Configure grid weights
         self.root.grid_rowconfigure(2, weight=1)
         self.root.grid_columnconfigure(0, weight=1)
+
+        # Initialize button states
+        self.update_button_states()
 
     def initialize_log_file(self):
         with open(self.log_file, 'w', newline='') as file:
@@ -140,13 +144,34 @@ class AntiTheftGUI:
         )
         self.add_button.grid(row=0, column=2, padx=5, pady=5)
 
+        # Current Basket Frame
+        self.basket_frame = ttk.LabelFrame(
+            self.root,
+            text="Current Basket",
+            padding="20 10 20 20"
+        )
+        self.basket_frame.grid(row=2, column=0, padx=20, pady=10, sticky="ew")
+        
+        # Basket display
+        self.basket_display = tk.Text(
+            self.basket_frame,
+            height=5,
+            width=70,
+            font=self.text_font,
+            wrap=tk.WORD,
+            bg='#ffffff',
+            fg='#000000'
+        )
+        self.basket_display.pack(fill=tk.BOTH, expand=True)
+        self.basket_display.config(state=tk.DISABLED)
+
         # Actions Frame
         self.action_frame = ttk.LabelFrame(
             self.root, 
             text="Actions", 
             padding="20 10 20 20"
         )
-        self.action_frame.grid(row=2, column=0, padx=20, pady=10, sticky="ew")
+        self.action_frame.grid(row=3, column=0, padx=20, pady=10, sticky="ew")
 
         # Action buttons with improved styling
         style = ttk.Style()
@@ -156,7 +181,8 @@ class AntiTheftGUI:
             self.action_frame, 
             text="Go to Cashier",
             style='Action.TButton',
-            command=self.go_to_cashier
+            command=self.go_to_cashier,
+            state=tk.DISABLED
         )
         self.cashier_button.pack(side="left", padx=10)
 
@@ -164,7 +190,8 @@ class AntiTheftGUI:
             self.action_frame, 
             text="Pass Through Gate",
             style='Action.TButton',
-            command=self.pass_through_gate
+            command=self.pass_through_gate,
+            state=tk.DISABLED
         )
         self.gate_button.pack(side="left", padx=10)
 
@@ -172,9 +199,22 @@ class AntiTheftGUI:
             self.action_frame, 
             text="Clear Basket",
             style='Action.TButton',
-            command=self.clear_basket
+            command=self.clear_basket,
+            state=tk.DISABLED
         )
         self.clear_button.pack(side="left", padx=10)
+
+        # Status Label Frame
+        self.status_frame = ttk.Frame(self.root, padding="20 10 20 10")
+        self.status_frame.grid(row=4, column=0, sticky="ew", padx=20)
+        
+        self.status_label = ttk.Label(
+            self.status_frame,
+            text="Ready to scan items",
+            font=self.status_font,
+            foreground='#666666'
+        )
+        self.status_label.pack()
 
         # System Log Frame
         self.log_frame = ttk.LabelFrame(
@@ -182,7 +222,7 @@ class AntiTheftGUI:
             text="System Log", 
             padding="20 10 20 20"
         )
-        self.log_frame.grid(row=3, column=0, padx=20, pady=10, sticky="nsew")
+        self.log_frame.grid(row=5, column=0, padx=20, pady=10, sticky="nsew")
         self.log_frame.columnconfigure(0, weight=1)
         self.log_frame.rowconfigure(0, weight=1)
 
@@ -207,6 +247,27 @@ class AntiTheftGUI:
         scrollbar.grid(row=0, column=1, sticky="ns")
         self.log_text.configure(yscrollcommand=scrollbar.set)
 
+    def update_button_states(self):
+        state = tk.NORMAL if self.current_person.items else tk.DISABLED
+        self.cashier_button.configure(state=state)
+        self.gate_button.configure(state=state)
+        self.clear_button.configure(state=state)
+
+    def update_basket_display(self):
+        self.basket_display.config(state=tk.NORMAL)
+        self.basket_display.delete(1.0, tk.END)
+        if self.current_person.items:
+            for item in self.current_person.items:
+                status = "✅ Deactivated" if item.is_deactivated else "🔴 Active"
+                self.basket_display.insert(tk.END, f"• {item.name} ({status})\n")
+        else:
+            self.basket_display.insert(tk.END, "Basket is empty")
+        self.basket_display.config(state=tk.DISABLED)
+
+    def update_status(self, message, is_alert=False):
+        color = '#ff0000' if is_alert else '#008000'
+        self.status_label.configure(text=message, foreground=color)
+
     def add_item(self):
         selected_item_name = self.item_var.get()
         if selected_item_name:
@@ -219,6 +280,9 @@ class AntiTheftGUI:
                     self.log_text.tag_add("success", "end-2c linestart", "end")
                     self.log_text.tag_configure("success", foreground="green")
                     self.log_text.see("end")
+                    self.update_basket_display()
+                    self.update_button_states()
+                    self.update_status(f"Added {new_item.name} to basket")
                     break
 
     def go_to_cashier(self):
@@ -230,6 +294,8 @@ class AntiTheftGUI:
         self.log_text.tag_add("cashier", "end-{}c".format(len(result)), "end")
         self.log_text.tag_configure("cashier", foreground="blue")
         self.log_text.see("end")
+        self.update_basket_display()
+        self.update_status("All items have been scanned and deactivated")
 
     def pass_through_gate(self):
         if not self.current_person.items:
@@ -238,34 +304,3 @@ class AntiTheftGUI:
         result, alert_triggered = self.gate.scan(self.current_person)
         self.log_text.insert("end", result)
         
-        # Apply color tags based on alert status
-        if alert_triggered:
-            self.log_text.tag_add("alert", "end-{}c".format(len(result)), "end")
-            self.log_text.tag_configure("alert", foreground="red", font=self.header_font)
-        else:
-            self.log_text.tag_add("safe", "end-{}c".format(len(result)), "end")
-            self.log_text.tag_configure("safe", foreground="green")
-        
-        self.log_text.see("end")
-        
-        # Log to CSV
-        with open(self.log_file, 'a', newline='') as file:
-            writer = csv.writer(file)
-            writer.writerow([
-                datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "Gate Scan",
-                "Alert Triggered" if alert_triggered else "No Alert"
-            ])
-
-    def clear_basket(self):
-        self.current_person.items = []
-        self.log_text.insert("end", "🗑️ Basket cleared\n")
-        self.log_text.tag_add("clear", "end-2c linestart", "end")
-        self.log_text.tag_configure("clear", foreground="gray")
-        self.log_text.see("end")
-
-
-if __name__ == "__main__":
-    root = tk.Tk()
-    app = AntiTheftGUI(root)
-    root.mainloop()
