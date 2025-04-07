@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox, font
 from datetime import datetime
 import csv
+import os
 
 class Item:
     def __init__(self, name, tag_id, is_deactivated=False):
@@ -59,7 +60,7 @@ class AntiTheftGUI:
     def __init__(self, root):
         self.root = root
         self.root.title("Supermarket Anti-Theft System")
-        self.root.geometry("1000x900")  # Increased height for new elements
+        self.root.geometry("1000x900")
         self.root.configure(bg='#f0f0f0')
 
         # Custom fonts
@@ -67,6 +68,10 @@ class AntiTheftGUI:
         self.text_font = font.Font(size=10)
         self.log_font = font.Font(size=11, family='Courier')
         self.status_font = font.Font(size=12, weight='bold')
+
+        # Initialize counters
+        self.person_counter = 0
+        self.alert_counter = 0
 
         # Available items in the store
         self.available_items = [
@@ -77,8 +82,8 @@ class AntiTheftGUI:
             Item("Chocolate", "RFID005")
         ]
 
-        # Create current person
-        self.current_person = Person("Customer")
+        # Create first person
+        self.new_person()
         self.cashier = Cashier("Sarah")
         self.gate = Gate()
 
@@ -94,28 +99,57 @@ class AntiTheftGUI:
         self.update_button_states()
 
     def initialize_log_file(self):
-        with open(self.log_file, 'w', newline='') as file:
-            writer = csv.writer(file)
-            writer.writerow(['Timestamp', 'Event', 'Alert'])
+        # Only create header if file doesn't exist
+        if not os.path.exists(self.log_file):
+            with open(self.log_file, 'w', newline='') as file:
+                writer = csv.writer(file)
+                writer.writerow(['Timestamp', 'Person', 'Items', 'Alert', 'Details'])
 
     def create_widgets(self):
-        # Title Frame
+        # Title and Person Info Frame
         title_frame = ttk.Frame(self.root, padding="20 20 20 10")
         title_frame.grid(row=0, column=0, sticky="ew")
+        
         title_label = ttk.Label(
             title_frame, 
             text="Supermarket Anti-Theft System", 
             font=('Helvetica', 16, 'bold')
         )
-        title_label.pack()
+        title_label.pack(side="left", padx=10)
+
+        self.person_label = ttk.Label(
+            title_frame,
+            text=f"Current Customer: {self.current_person.name}",
+            font=self.header_font
+        )
+        self.person_label.pack(side="right", padx=10)
+
+        # Stats Frame
+        stats_frame = ttk.Frame(self.root, padding="20 10")
+        stats_frame.grid(row=1, column=0, sticky="ew", padx=20)
+        
+        self.alert_label = ttk.Label(
+            stats_frame,
+            text="Total Alerts: 0",
+            font=self.header_font,
+            foreground='red'
+        )
+        self.alert_label.pack(side="left")
+
+        new_person_btn = ttk.Button(
+            stats_frame,
+            text="New Person",
+            command=self.new_person
+        )
+        new_person_btn.pack(side="right")
 
         # Item Selection Frame
         self.item_frame = ttk.LabelFrame(
             self.root, 
-            text="Person's Basket", 
+            text="Add Items to Basket", 
             padding="20 10 20 20"
         )
-        self.item_frame.grid(row=1, column=0, padx=20, pady=10, sticky="ew")
+        self.item_frame.grid(row=2, column=0, padx=20, pady=10, sticky="ew")
 
         # Configure item frame grid
         self.item_frame.columnconfigure(1, weight=1)
@@ -150,7 +184,7 @@ class AntiTheftGUI:
             text="Current Basket",
             padding="20 10 20 20"
         )
-        self.basket_frame.grid(row=2, column=0, padx=20, pady=10, sticky="ew")
+        self.basket_frame.grid(row=3, column=0, padx=20, pady=10, sticky="ew")
         
         # Basket display
         self.basket_display = tk.Text(
@@ -171,11 +205,12 @@ class AntiTheftGUI:
             text="Actions", 
             padding="20 10 20 20"
         )
-        self.action_frame.grid(row=3, column=0, padx=20, pady=10, sticky="ew")
+        self.action_frame.grid(row=4, column=0, padx=20, pady=10, sticky="ew")
 
         # Action buttons with improved styling
         style = ttk.Style()
         style.configure('Action.TButton', font=self.text_font)
+        style.configure('Alert.TButton', foreground='red')
 
         self.cashier_button = ttk.Button(
             self.action_frame, 
@@ -185,6 +220,15 @@ class AntiTheftGUI:
             state=tk.DISABLED
         )
         self.cashier_button.pack(side="left", padx=10)
+
+        self.skip_cashier_button = ttk.Button(
+            self.action_frame,
+            text="Skip Cashier",
+            style='Alert.TButton',
+            command=self.skip_cashier,
+            state=tk.DISABLED
+        )
+        self.skip_cashier_button.pack(side="left", padx=10)
 
         self.gate_button = ttk.Button(
             self.action_frame, 
@@ -206,7 +250,7 @@ class AntiTheftGUI:
 
         # Status Label Frame
         self.status_frame = ttk.Frame(self.root, padding="20 10 20 10")
-        self.status_frame.grid(row=4, column=0, sticky="ew", padx=20)
+        self.status_frame.grid(row=5, column=0, sticky="ew", padx=20)
         
         self.status_label = ttk.Label(
             self.status_frame,
@@ -222,7 +266,7 @@ class AntiTheftGUI:
             text="System Log", 
             padding="20 10 20 20"
         )
-        self.log_frame.grid(row=5, column=0, padx=20, pady=10, sticky="nsew")
+        self.log_frame.grid(row=6, column=0, padx=20, pady=10, sticky="nsew")
         self.log_frame.columnconfigure(0, weight=1)
         self.log_frame.rowconfigure(0, weight=1)
 
@@ -247,11 +291,20 @@ class AntiTheftGUI:
         scrollbar.grid(row=0, column=1, sticky="ns")
         self.log_text.configure(yscrollcommand=scrollbar.set)
 
+    def new_person(self):
+        self.person_counter += 1
+        self.current_person = Person(f"Person {self.person_counter}")
+        if hasattr(self, 'person_label'):
+            self.person_label.configure(text=f"Current Customer: {self.current_person.name}")
+            self.clear_basket()
+            self.update_status(f"New customer: {self.current_person.name}")
+
     def update_button_states(self):
         state = tk.NORMAL if self.current_person.items else tk.DISABLED
         self.cashier_button.configure(state=state)
         self.gate_button.configure(state=state)
         self.clear_button.configure(state=state)
+        self.skip_cashier_button.configure(state=state)
 
     def update_basket_display(self):
         self.basket_display.config(state=tk.NORMAL)
@@ -271,7 +324,6 @@ class AntiTheftGUI:
     def add_item(self):
         selected_item_name = self.item_var.get()
         if selected_item_name:
-            # Create a new instance of the selected item
             for item in self.available_items:
                 if item.name == selected_item_name:
                     new_item = Item(item.name, item.tag_id)
@@ -284,6 +336,17 @@ class AntiTheftGUI:
                     self.update_button_states()
                     self.update_status(f"Added {new_item.name} to basket")
                     break
+
+    def skip_cashier(self):
+        if not self.current_person.items:
+            messagebox.showwarning("Empty Basket", "No items in the basket!")
+            return
+        self.log_text.insert("end", f"\n⚠️ {self.current_person.name} is skipping the cashier!\n")
+        self.log_text.tag_add("skip", "end-2c linestart", "end")
+        self.log_text.tag_configure("skip", foreground="red")
+        self.log_text.see("end")
+        self.update_status("⚠️ Skipping cashier!", True)
+        self.pass_through_gate()
 
     def go_to_cashier(self):
         if not self.current_person.items:
@@ -304,8 +367,9 @@ class AntiTheftGUI:
         result, alert_triggered = self.gate.scan(self.current_person)
         self.log_text.insert("end", result)
         
-        # Apply color tags based on alert status
         if alert_triggered:
+            self.alert_counter += 1
+            self.alert_label.configure(text=f"Total Alerts: {self.alert_counter}")
             self.log_text.tag_add("alert", "end-{}c".format(len(result)), "end")
             self.log_text.tag_configure("alert", foreground="red", font=self.header_font)
             self.update_status("🚨 ALERT: Active tag detected!", True)
@@ -316,27 +380,3 @@ class AntiTheftGUI:
         
         self.log_text.see("end")
         
-        # Log to CSV
-        with open(self.log_file, 'a', newline='') as file:
-            writer = csv.writer(file)
-            writer.writerow([
-                datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "Gate Scan",
-                "Alert Triggered" if alert_triggered else "No Alert"
-            ])
-
-    def clear_basket(self):
-        self.current_person.items = []
-        self.log_text.insert("end", "🗑️ Basket cleared\n")
-        self.log_text.tag_add("clear", "end-2c linestart", "end")
-        self.log_text.tag_configure("clear", foreground="gray")
-        self.log_text.see("end")
-        self.update_basket_display()
-        self.update_button_states()
-        self.update_status("Basket has been cleared")
-
-
-if __name__ == "__main__":
-    root = tk.Tk()
-    app = AntiTheftGUI(root)
-    root.mainloop()
