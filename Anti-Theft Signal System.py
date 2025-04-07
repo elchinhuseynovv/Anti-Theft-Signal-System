@@ -304,3 +304,15 @@ class AntiTheftGUI:
         result, alert_triggered = self.gate.scan(self.current_person)
         self.log_text.insert("end", result)
         
+        # Apply color tags based on alert status
+        if alert_triggered:
+            self.log_text.tag_add("alert", "end-{}c".format(len(result)), "end")
+            self.log_text.tag_configure("alert", foreground="red", font=self.header_font)
+            self.update_status("🚨 ALERT: Active tag detected!", True)
+        else:
+            self.log_text.tag_add("safe", "end-{}c".format(len(result)), "end")
+            self.log_text.tag_configure("safe", foreground="green")
+            self.update_status("✅ All items are safe. No alert.")
+        
+        self.log_text.see("end")
+        
