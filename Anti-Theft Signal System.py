@@ -487,3 +487,24 @@ class AntiTheftGUI:
         
         self.log_text.see("end")
         
+        # Log to CSV
+        with open(self.log_file, 'a', newline='') as file:
+            writer = csv.writer(file)
+            items_list = ', '.join([item.name for item in self.current_person.items])
+            writer.writerow([
+                datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                self.current_person.name,
+                items_list,
+                "Yes" if alert_triggered else "No",
+                "Undeactivated tags detected" if alert_triggered else "All tags deactivated"
+            ])
+
+    def clear_basket(self):
+        self.current_person.items = []
+        self.log_text.insert("end", "🗑️ Basket cleared\n")
+        self.log_text.tag_add("clear", "end-2c linestart", "end")
+        self.log_text.tag_configure("clear", foreground="gray")
+        self.log_text.see("end")
+        self.update_basket_display()
+        self.update_button_states()
+        self.update_status("Basket has been cleared")
