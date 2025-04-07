@@ -508,3 +508,9 @@ class AntiTheftGUI:
         self.update_basket_display()
         self.update_button_states()
         self.update_status("Basket has been cleared")
+
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = AntiTheftGUI(root)
+    root.mainloop()
