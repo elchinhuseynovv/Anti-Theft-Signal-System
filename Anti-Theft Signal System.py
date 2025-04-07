@@ -3,6 +3,10 @@ from tkinter import ttk, messagebox, font
 from datetime import datetime
 import csv
 import os
+import time
+import random
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 class Item:
     def __init__(self, name, tag_id, is_deactivated=False):
@@ -31,11 +35,15 @@ class Cashier:
     def __init__(self, name):
         self.name = name
 
-    def scan_and_deactivate(self, person):
+    def scan_and_deactivate(self, person, callback=None):
         result = f"\n🧾 {self.name} is scanning {person.name}'s items at the checkout...\n"
         for item in person.items:
-            result += f" - Scanning {item.name}... ✅ Tag deactivated.\n"
+            scan_msg = f" - Scanning {item.name}... ✅ Tag deactivated.\n"
+            result += scan_msg
             item.is_deactivated = True
+            if callback:
+                callback(scan_msg)
+                time.sleep(0.5)
         return result
 
 
@@ -56,11 +64,32 @@ class Gate:
         return result, alert_triggered
 
 
+class StatisticsWindow:
+    def __init__(self, parent, safe_scans, alert_scans):
+        self.window = tk.Toplevel(parent)
+        self.window.title("Scan Statistics")
+        self.window.geometry("600x400")
+        
+        # Create figure and plot
+        fig, ax = plt.subplots(figsize=(6, 4))
+        labels = ['Safe Scans', 'Alert Scans']
+        sizes = [safe_scans, alert_scans]
+        colors = ['#2ecc71', '#e74c3c']
+        
+        ax.pie(sizes, labels=labels, colors=colors, autopct='%1.1f%%', startangle=90)
+        ax.axis('equal')
+        
+        # Embed plot in Tkinter window
+        canvas = FigureCanvasTkAgg(fig, master=self.window)
+        canvas.draw()
+        canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
+
+
 class AntiTheftGUI:
     def __init__(self, root):
         self.root = root
         self.root.title("Supermarket Anti-Theft System")
-        self.root.geometry("1000x900")
+        self.root.geometry("1000x1000")
         self.root.configure(bg='#f0f0f0')
 
         # Custom fonts
@@ -72,6 +101,7 @@ class AntiTheftGUI:
         # Initialize counters
         self.person_counter = 0
         self.alert_counter = 0
+        self.safe_scan_counter = 0
 
         # Available items in the store
         self.available_items = [
@@ -98,8 +128,10 @@ class AntiTheftGUI:
         # Initialize button states
         self.update_button_states()
 
+        # Store alert history
+        self.alert_history = []
+
     def initialize_log_file(self):
-        # Only create header if file doesn't exist
         if not os.path.exists(self.log_file):
             with open(self.log_file, 'w', newline='') as file:
                 writer = csv.writer(file)
@@ -143,13 +175,39 @@ class AntiTheftGUI:
         )
         new_person_btn.pack(side="right")
 
+        # Analysis Frame
+        analysis_frame = ttk.LabelFrame(
+            self.root,
+            text="Analysis Tools",
+            padding="20 10 20 20"
+        )
+        analysis_frame.grid(row=2, column=0, padx=20, pady=10, sticky="ew")
+
+        ttk.Button(
+            analysis_frame,
+            text="Show Statistics",
+            command=self.show_statistics
+        ).pack(side="left", padx=5)
+
+        ttk.Button(
+            analysis_frame,
+            text="Simulate Random Customers",
+            command=self.simulate_random_customers
+        ).pack(side="left", padx=5)
+
+        ttk.Button(
+            analysis_frame,
+            text="Generate Report",
+            command=self.generate_report
+        ).pack(side="left", padx=5)
+
         # Item Selection Frame
         self.item_frame = ttk.LabelFrame(
             self.root, 
             text="Add Items to Basket", 
             padding="20 10 20 20"
         )
-        self.item_frame.grid(row=2, column=0, padx=20, pady=10, sticky="ew")
+        self.item_frame.grid(row=3, column=0, padx=20, pady=10, sticky="ew")
 
         # Configure item frame grid
         self.item_frame.columnconfigure(1, weight=1)
@@ -184,7 +242,7 @@ class AntiTheftGUI:
             text="Current Basket",
             padding="20 10 20 20"
         )
-        self.basket_frame.grid(row=3, column=0, padx=20, pady=10, sticky="ew")
+        self.basket_frame.grid(row=4, column=0, padx=20, pady=10, sticky="ew")
         
         # Basket display
         self.basket_display = tk.Text(
@@ -205,7 +263,7 @@ class AntiTheftGUI:
             text="Actions", 
             padding="20 10 20 20"
         )
-        self.action_frame.grid(row=4, column=0, padx=20, pady=10, sticky="ew")
+        self.action_frame.grid(row=5, column=0, padx=20, pady=10, sticky="ew")
 
         # Action buttons with improved styling
         style = ttk.Style()
@@ -250,7 +308,7 @@ class AntiTheftGUI:
 
         # Status Label Frame
         self.status_frame = ttk.Frame(self.root, padding="20 10 20 10")
-        self.status_frame.grid(row=5, column=0, sticky="ew", padx=20)
+        self.status_frame.grid(row=6, column=0, sticky="ew", padx=20)
         
         self.status_label = ttk.Label(
             self.status_frame,
@@ -266,7 +324,7 @@ class AntiTheftGUI:
             text="System Log", 
             padding="20 10 20 20"
         )
-        self.log_frame.grid(row=6, column=0, padx=20, pady=10, sticky="nsew")
+        self.log_frame.grid(row=7, column=0, padx=20, pady=10, sticky="nsew")
         self.log_frame.columnconfigure(0, weight=1)
         self.log_frame.rowconfigure(0, weight=1)
 
@@ -290,6 +348,50 @@ class AntiTheftGUI:
         )
         scrollbar.grid(row=0, column=1, sticky="ns")
         self.log_text.configure(yscrollcommand=scrollbar.set)
+
+    def show_statistics(self):
+        StatisticsWindow(self.root, self.safe_scan_counter, self.alert_counter)
+
+    def simulate_random_customers(self):
+        for _ in range(10):
+            self.new_person()
+            # Add 1-5 random items
+            num_items = random.randint(1, 5)
+            for _ in range(num_items):
+                item = random.choice(self.available_items)
+                new_item = Item(item.name, item.tag_id)
+                self.current_person.add_item(new_item)
+                self.update_basket_display()
+                self.update_button_states()
+                self.root.update_idletasks()
+                time.sleep(0.2)
+            
+            # 30% chance to skip cashier
+            if random.random() < 0.3:
+                self.skip_cashier()
+            else:
+                self.go_to_cashier()
+            
+            self.pass_through_gate()
+            time.sleep(0.5)
+
+    def generate_report(self):
+        with open('summary_report.txt', 'w') as f:
+            f.write("=== Supermarket Anti-Theft System Report ===\n\n")
+            f.write(f"Report Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+            f.write(f"Total People Scanned: {self.person_counter}\n")
+            f.write(f"Total Alerts: {self.alert_counter}\n")
+            f.write(f"Total Safe Scans: {self.safe_scan_counter}\n\n")
+            
+            if self.alert_history:
+                f.write("People Who Triggered Alerts:\n")
+                for person in self.alert_history:
+                    f.write(f"- {person}\n")
+            else:
+                f.write("No alerts were triggered during this session.\n")
+        
+        messagebox.showinfo("Report Generated", 
+                          "Summary report has been generated as 'summary_report.txt'")
 
     def new_person(self):
         self.person_counter += 1
@@ -336,47 +438,3 @@ class AntiTheftGUI:
                     self.update_button_states()
                     self.update_status(f"Added {new_item.name} to basket")
                     break
-
-    def skip_cashier(self):
-        if not self.current_person.items:
-            messagebox.showwarning("Empty Basket", "No items in the basket!")
-            return
-        self.log_text.insert("end", f"\n⚠️ {self.current_person.name} is skipping the cashier!\n")
-        self.log_text.tag_add("skip", "end-2c linestart", "end")
-        self.log_text.tag_configure("skip", foreground="red")
-        self.log_text.see("end")
-        self.update_status("⚠️ Skipping cashier!", True)
-        self.pass_through_gate()
-
-    def go_to_cashier(self):
-        if not self.current_person.items:
-            messagebox.showwarning("Empty Basket", "No items in the basket!")
-            return
-        result = self.cashier.scan_and_deactivate(self.current_person)
-        self.log_text.insert("end", result)
-        self.log_text.tag_add("cashier", "end-{}c".format(len(result)), "end")
-        self.log_text.tag_configure("cashier", foreground="blue")
-        self.log_text.see("end")
-        self.update_basket_display()
-        self.update_status("All items have been scanned and deactivated")
-
-    def pass_through_gate(self):
-        if not self.current_person.items:
-            messagebox.showwarning("Empty Basket", "No items to scan!")
-            return
-        result, alert_triggered = self.gate.scan(self.current_person)
-        self.log_text.insert("end", result)
-        
-        if alert_triggered:
-            self.alert_counter += 1
-            self.alert_label.configure(text=f"Total Alerts: {self.alert_counter}")
-            self.log_text.tag_add("alert", "end-{}c".format(len(result)), "end")
-            self.log_text.tag_configure("alert", foreground="red", font=self.header_font)
-            self.update_status("🚨 ALERT: Active tag detected!", True)
-        else:
-            self.log_text.tag_add("safe", "end-{}c".format(len(result)), "end")
-            self.log_text.tag_configure("safe", foreground="green")
-            self.update_status("✅ All items are safe. No alert.")
-        
-        self.log_text.see("end")
-        
