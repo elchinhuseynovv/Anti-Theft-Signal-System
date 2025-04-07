@@ -472,3 +472,18 @@ class AntiTheftGUI:
         result, alert_triggered = self.gate.scan(self.current_person)
         self.log_text.insert("end", result)
         
+        if alert_triggered:
+            self.alert_counter += 1
+            self.alert_history.append(self.current_person.name)
+            self.alert_label.configure(text=f"Total Alerts: {self.alert_counter}")
+            self.log_text.tag_add("alert", "end-{}c".format(len(result)), "end")
+            self.log_text.tag_configure("alert", foreground="red", font=self.header_font)
+            self.update_status("🚨 ALERT: Active tag detected!", True)
+        else:
+            self.safe_scan_counter += 1
+            self.log_text.tag_add("safe", "end-{}c".format(len(result)), "end")
+            self.log_text.tag_configure("safe", foreground="green")
+            self.update_status("✅ All items are safe. No alert.")
+        
+        self.log_text.see("end")
+        
