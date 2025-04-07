@@ -8,6 +8,7 @@ class Item:
         status = "Deactivated" if self.is_deactivated else "Active"
         return f"{self.name} (Tag: {self.tag_id}, {status})"
 
+
 class Person:
     def __init__(self, name):
         self.name = name
@@ -19,12 +20,24 @@ class Person:
     def __str__(self):
         return f"{self.name} is carrying {len(self.items)} item(s)."
 
+
+class Cashier:
+    def __init__(self, name):
+        self.name = name
+
+    def scan_and_deactivate(self, person):
+        print(f"\n🧾 {self.name} is scanning {person.name}'s items at the checkout...")
+        for item in person.items:
+            print(f" - Scanning {item.name}... ✅ Tag deactivated.")
+            item.is_deactivated = True
+
+
 class Gate:
     def __init__(self):
         pass
 
     def scan(self, person):
-        print(f"\nScanning {person.name} at the gate...")
+        print(f"\n🚪 Scanning {person.name} at the exit gate...")
         alert_triggered = False
         for item in person.items:
             print(f" - Checking item: {item}")
@@ -34,17 +47,22 @@ class Gate:
         if not alert_triggered:
             print("✅ All items are safe. No alert.")
 
+
 # --- Simulation ---
 
 # Create items
-apple = Item("Apple", "RFID123", is_deactivated=True)  # Legit
-cheese = Item("Cheese", "RFID456")                    # Stolen (tag not deactivated)
+milk = Item("Milk", "RFID001")
+bread = Item("Bread", "RFID002")
 
-# Create a person and add items
-john = Person("John")
-john.add_item(apple)
-john.add_item(cheese)
+# Create a person
+alice = Person("Alice")
+alice.add_item(milk)
+alice.add_item(bread)
 
-# Create a gate and scan
+# Create a cashier and deactivate tags
+cashier = Cashier("Sarah")
+cashier.scan_and_deactivate(alice)
+
+# Create a gate and scan the person
 exit_gate = Gate()
-exit_gate.scan(john)
+exit_gate.scan(alice)
