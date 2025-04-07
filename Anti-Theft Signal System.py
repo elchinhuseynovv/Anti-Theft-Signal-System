@@ -263,3 +263,9 @@ class AntiTheftGUI:
         self.log_text.tag_add("clear", "end-2c linestart", "end")
         self.log_text.tag_configure("clear", foreground="gray")
         self.log_text.see("end")
+
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = AntiTheftGUI(root)
+    root.mainloop()
