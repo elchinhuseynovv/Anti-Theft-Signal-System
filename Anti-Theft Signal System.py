@@ -438,3 +438,37 @@ class AntiTheftGUI:
                     self.update_button_states()
                     self.update_status(f"Added {new_item.name} to basket")
                     break
+
+    def update_log_with_delay(self, message):
+        self.log_text.insert("end", message)
+        self.log_text.tag_add("cashier", "end-{}c".format(len(message)), "end")
+        self.log_text.tag_configure("cashier", foreground="blue")
+        self.log_text.see("end")
+        self.root.update_idletasks()
+
+    def skip_cashier(self):
+        if not self.current_person.items:
+            messagebox.showwarning("Empty Basket", "No items in the basket!")
+            return
+        self.log_text.insert("end", f"\n⚠️ {self.current_person.name} is skipping the cashier!\n")
+        self.log_text.tag_add("skip", "end-2c linestart", "end")
+        self.log_text.tag_configure("skip", foreground="red")
+        self.log_text.see("end")
+        self.update_status("⚠️ Skipping cashier!", True)
+        self.pass_through_gate()
+
+    def go_to_cashier(self):
+        if not self.current_person.items:
+            messagebox.showwarning("Empty Basket", "No items in the basket!")
+            return
+        result = self.cashier.scan_and_deactivate(self.current_person, self.update_log_with_delay)
+        self.update_basket_display()
+        self.update_status("All items have been scanned and deactivated")
+
+    def pass_through_gate(self):
+        if not self.current_person.items:
+            messagebox.showwarning("Empty Basket", "No items to scan!")
+            return
+        result, alert_triggered = self.gate.scan(self.current_person)
+        self.log_text.insert("end", result)
+        
