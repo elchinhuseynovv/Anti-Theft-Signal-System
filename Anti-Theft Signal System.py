@@ -220,3 +220,46 @@ class AntiTheftGUI:
                     self.log_text.tag_configure("success", foreground="green")
                     self.log_text.see("end")
                     break
+
+    def go_to_cashier(self):
+        if not self.current_person.items:
+            messagebox.showwarning("Empty Basket", "No items in the basket!")
+            return
+        result = self.cashier.scan_and_deactivate(self.current_person)
+        self.log_text.insert("end", result)
+        self.log_text.tag_add("cashier", "end-{}c".format(len(result)), "end")
+        self.log_text.tag_configure("cashier", foreground="blue")
+        self.log_text.see("end")
+
+    def pass_through_gate(self):
+        if not self.current_person.items:
+            messagebox.showwarning("Empty Basket", "No items to scan!")
+            return
+        result, alert_triggered = self.gate.scan(self.current_person)
+        self.log_text.insert("end", result)
+        
+        # Apply color tags based on alert status
+        if alert_triggered:
+            self.log_text.tag_add("alert", "end-{}c".format(len(result)), "end")
+            self.log_text.tag_configure("alert", foreground="red", font=self.header_font)
+        else:
+            self.log_text.tag_add("safe", "end-{}c".format(len(result)), "end")
+            self.log_text.tag_configure("safe", foreground="green")
+        
+        self.log_text.see("end")
+        
+        # Log to CSV
+        with open(self.log_file, 'a', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow([
+                datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "Gate Scan",
+                "Alert Triggered" if alert_triggered else "No Alert"
+            ])
+
+    def clear_basket(self):
+        self.current_person.items = []
+        self.log_text.insert("end", "🗑️ Basket cleared\n")
+        self.log_text.tag_add("clear", "end-2c linestart", "end")
+        self.log_text.tag_configure("clear", foreground="gray")
+        self.log_text.see("end")
