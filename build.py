@@ -2,7 +2,7 @@ import PyInstaller.__main__
 import os
 
 # Get the absolute path of the script
-script_path = os.path.abspath("Anti-Theft Signal System.py")
+script_path = os.path.abspath("main.py")
 
 PyInstaller.__main__.run([
     script_path,
