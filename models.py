@@ -140,3 +140,42 @@ class Gate:
         total_scans (int): Total number of scans performed
         alerts_triggered (int): Number of alerts triggered
     """
+    
+    def __init__(self):
+        self.total_scans = 0
+        self.alerts_triggered = 0
+
+    def scan(self, person):
+        """
+        Scan a person for active RFID tags.
+        
+        Args:
+            person (Person): The person to scan
+            
+        Returns:
+            tuple: (scan result message, alert triggered flag)
+        """
+        self.total_scans += 1
+        result = f"\n🚪 Scanning {person.name} at the exit gate...\n"
+        alert_triggered = False
+        
+        for item in person.items:
+            result += f" - Checking item: {item}\n"
+            if not item.is_deactivated:
+                result += "   🔴 ALERT: Active tag detected! Possible theft!\n"
+                alert_triggered = True
+        
+        if alert_triggered:
+            self.alerts_triggered += 1
+        else:
+            result += "✅ All items are safe. No alert.\n"
+        
+        return result, alert_triggered
+
+    def get_stats(self):
+        """Get gate statistics."""
+        return {
+            "total_scans": self.total_scans,
+            "alerts_triggered": self.alerts_triggered,
+            "alert_rate": (self.alerts_triggered / self.total_scans * 100) if self.total_scans > 0 else 0
+        }
