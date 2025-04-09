@@ -143,3 +143,11 @@ class SystemLogger:
         if not self.log_entries:
             return None
             
+        analytics = {
+            'total_entries': len(self.log_entries),
+            'alert_rate': sum(1 for entry in self.log_entries if entry['alert'] == 'Yes') / len(self.log_entries),
+            'avg_basket_value': sum(float(entry['total_value'].replace('$', '')) for entry in self.log_entries) / len(self.log_entries),
+            'avg_processing_time': sum(float(entry['duration'].replace('s', '')) for entry in self.log_entries) / len(self.log_entries)
+        }
+        
+        return analytics
