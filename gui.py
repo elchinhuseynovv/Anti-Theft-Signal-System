@@ -192,3 +192,28 @@ class AntiTheftGUI:
         self.log_text.see("end")
         self.update_status("⚠️ Skipping cashier!", True)
         self.pass_through_gate()
+
+    def pass_through_gate(self):
+        """Process the current person through the security gate."""
+        if not self.current_person.items:
+            messagebox.showwarning("Empty Basket", "No items to scan!")
+            return
+        
+        try:
+            result, alert_triggered = self.gate.scan(self.current_person)
+            self.log_text.insert("end", result)
+            self.log_text.see("end")
+            
+            if alert_triggered:
+                self.alert_counter += 1
+                self.alert_history.append(self.current_person.name)
+                self.alert_label.configure(text=f"Total Alerts: {self.alert_counter}")
+                self.update_status("🚨 ALERT: Active tag detected!", True)
+            else:
+                self.safe_scan_counter += 1
+                self.update_status("✅ All items are safe. No alert.")
+            
+            self.logger.log_gate_scan(self.current_person, alert_triggered)
+            
+        except Exception as e:
+            messagebox.showerror("Gate Error", f"Error during gate scan: {str(e)}")
