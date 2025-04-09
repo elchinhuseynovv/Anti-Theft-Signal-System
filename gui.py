@@ -217,3 +217,10 @@ class AntiTheftGUI:
             
         except Exception as e:
             messagebox.showerror("Gate Error", f"Error during gate scan: {str(e)}")
+
+    def update_log_with_delay(self, message):
+        """Update the log with a delay for visual effect."""
+        self.log_text.insert("end", message)
+        self.log_text.see("end")
+        self.root.update_idletasks()
+        time.sleep(0.5)
