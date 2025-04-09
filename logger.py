@@ -65,3 +65,37 @@ class SystemLogger:
             'duration': f"{duration:.1f}s"
         }
         
+        # Add to in-memory log
+        self.log_entries.append(entry)
+        
+        # Write to CSV
+        with open(self.log_file, 'a', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow([
+                entry['timestamp'],
+                entry['person'],
+                entry['items'],
+                entry['alert'],
+                entry['details'],
+                entry['total_value'],
+                entry['duration']
+            ])
+        
+        # Update JSON log
+        with open(self.json_log_file, 'w') as file:
+            json.dump(self.log_entries, file, indent=2)
+
+    def generate_report(self, person_counter, alert_counter, safe_scan_counter, alert_history):
+        """
+        Generate a detailed summary report.
+        
+        Args:
+            person_counter (int): Total number of people scanned
+            alert_counter (int): Total number of alerts
+            safe_scan_counter (int): Total number of safe scans
+            alert_history (list): List of people who triggered alerts
+        """
+        with open('summary_report.txt', 'w') as f:
+            f.write("=== Supermarket Anti-Theft System Report ===\n\n")
+            f.write(f"Report Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+            
