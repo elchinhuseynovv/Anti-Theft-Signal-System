@@ -123,4 +123,20 @@ class Cashier:
         
         return result
 
- 
+    def get_stats(self):
+        """Get cashier's performance statistics."""
+        return {
+            "name": self.name,
+            "items_processed": self.items_processed,
+            "total_sales": self.total_sales
+        }
+
+
+class Gate:
+    """
+    Represents a security gate that can detect active RFID tags.
+    
+    Attributes:
+        total_scans (int): Total number of scans performed
+        alerts_triggered (int): Number of alerts triggered
+    """
