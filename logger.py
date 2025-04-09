@@ -117,3 +117,29 @@ class SystemLogger:
             else:
                 f.write("No alerts were triggered during this session.\n\n")
             
+            # Value Analysis
+            if self.log_entries:
+                total_value = sum(float(entry['total_value'].replace('$', '')) 
+                                for entry in self.log_entries)
+                avg_duration = sum(float(entry['duration'].replace('s', '')) 
+                                 for entry in self.log_entries) / len(self.log_entries)
+                
+                f.write("\n=== Value Analysis ===\n")
+                f.write(f"Total Value Processed: ${total_value:.2f}\n")
+                f.write(f"Average Processing Time: {avg_duration:.1f}s\n")
+        
+        messagebox.showinfo(
+            "Report Generated", 
+            "Summary report has been generated as 'summary_report.txt'"
+        )
+
+    def get_analytics(self):
+        """
+        Get system analytics.
+        
+        Returns:
+            dict: Analytics data including trends and patterns
+        """
+        if not self.log_entries:
+            return None
+            
