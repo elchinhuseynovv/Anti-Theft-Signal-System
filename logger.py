@@ -99,3 +99,21 @@ class SystemLogger:
             f.write("=== Supermarket Anti-Theft System Report ===\n\n")
             f.write(f"Report Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
             
+            # Overall Statistics
+            f.write("=== Overall Statistics ===\n")
+            f.write(f"Total People Scanned: {person_counter}\n")
+            f.write(f"Total Alerts: {alert_counter}\n")
+            f.write(f"Total Safe Scans: {safe_scan_counter}\n")
+            
+            if person_counter > 0:
+                alert_rate = (alert_counter / person_counter) * 100
+                f.write(f"Alert Rate: {alert_rate:.1f}%\n\n")
+            
+            # Alert History
+            f.write("=== Alert History ===\n")
+            if alert_history:
+                for person in alert_history:
+                    f.write(f"- {person}\n")
+            else:
+                f.write("No alerts were triggered during this session.\n\n")
+            
