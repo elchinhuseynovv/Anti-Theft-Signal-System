@@ -160,3 +160,35 @@ class AntiTheftGUI:
                     self.update_button_states()
                     self.update_status(f"Added {new_item.name} to basket")
                     break
+
+    def clear_basket(self):
+        """Clear all items from the current basket."""
+        self.current_person.items = []
+        self.update_basket_display()
+        self.update_button_states()
+        self.update_status("Basket has been cleared")
+
+    def go_to_cashier(self):
+        """Process items through the cashier."""
+        if not self.current_person.items:
+            messagebox.showwarning("Empty Basket", "No items in the basket!")
+            return
+        
+        try:
+            result = self.cashier.scan_and_deactivate(self.current_person, 
+                lambda msg: self.update_log_with_delay(msg))
+            self.update_basket_display()
+            self.update_status("All items have been scanned and deactivated")
+        except Exception as e:
+            messagebox.showerror("Cashier Error", f"Error during checkout: {str(e)}")
+
+    def skip_cashier(self):
+        """Skip the cashier (simulating potential theft)."""
+        if not self.current_person.items:
+            messagebox.showwarning("Empty Basket", "No items in the basket!")
+            return
+        
+        self.log_text.insert("end", f"\n⚠️ {self.current_person.name} is skipping the cashier!\n")
+        self.log_text.see("end")
+        self.update_status("⚠️ Skipping cashier!", True)
+        self.pass_through_gate()
