@@ -216,7 +216,8 @@ class AntiTheftGUI:
             self.action_frame, 
             text="Go to Cashier",
             style='Action.TButton',
-            command=self.go_to_cashier
+            command=self.go_to_cashier,
+            state=tk.DISABLED
         )
         self.cashier_button.pack(side="left", padx=10)
 
@@ -224,7 +225,8 @@ class AntiTheftGUI:
             self.action_frame,
             text="Skip Cashier",
             style='Alert.TButton',
-            command=self.skip_cashier
+            command=self.skip_cashier,
+            state=tk.DISABLED
         )
         self.skip_cashier_button.pack(side="left", padx=10)
 
@@ -232,7 +234,8 @@ class AntiTheftGUI:
             self.action_frame, 
             text="Pass Through Gate",
             style='Action.TButton',
-            command=self.pass_through_gate
+            command=self.pass_through_gate,
+            state=tk.DISABLED
         )
         self.gate_button.pack(side="left", padx=10)
 
@@ -240,7 +243,8 @@ class AntiTheftGUI:
             self.action_frame, 
             text="Clear Basket",
             style='Action.TButton',
-            command=self.clear_basket
+            command=self.clear_basket,
+            state=tk.DISABLED
         )
         self.clear_button.pack(side="left", padx=10)
 
@@ -290,33 +294,6 @@ class AntiTheftGUI:
         # Configure grid weights
         self.root.grid_rowconfigure(7, weight=1)
         self.root.grid_columnconfigure(0, weight=1)
-
-    def simulate_random_customers(self):
-        """Simulate multiple customers with random behaviors."""
-        try:
-            for _ in range(10):
-                self.new_person()
-                # Add 1-5 random items
-                num_items = random.randint(1, 5)
-                for _ in range(num_items):
-                    item = random.choice(self.available_items)
-                    new_item = Item(item.name, item.tag_id, price=item.price, category=item.category)
-                    self.current_person.add_item(new_item)
-                    self.update_basket_display()
-                    self.update_button_states()
-                    self.root.update_idletasks()
-                    time.sleep(0.2)
-                
-                # 30% chance to skip cashier
-                if random.random() < 0.3:
-                    self.skip_cashier()
-                else:
-                    self.go_to_cashier()
-                
-                self.pass_through_gate()
-                time.sleep(0.5)
-        except Exception as e:
-            messagebox.showerror("Simulation Error", f"Error during simulation: {str(e)}")
 
     def update_button_states(self):
         """Update the state of all buttons based on current conditions."""
@@ -438,3 +415,31 @@ class AntiTheftGUI:
         self.log_text.see("end")
         self.root.update_idletasks()
         time.sleep(0.5)
+
+    def simulate_random_customers(self):
+        """Simulate multiple customers with random behaviors."""
+        try:
+            for _ in range(10):
+                self.new_person()
+                # Add 1-5 random items
+                num_items = random.randint(1, 5)
+                for _ in range(num_items):
+                    item = random.choice(self.available_items)
+                    new_item = Item(item.name, item.tag_id, 
+                                  price=item.price, category=item.category)
+                    self.current_person.add_item(new_item)
+                    self.update_basket_display()
+                    self.update_button_states()
+                    self.root.update_idletasks()
+                    time.sleep(0.2)
+                
+                # 30% chance to skip cashier
+                if random.random() < 0.3:
+                    self.skip_cashier()
+                else:
+                    self.go_to_cashier()
+                
+                self.pass_through_gate()
+                time.sleep(0.5)
+        except Exception as e:
+            messagebox.showerror("Simulation Error", f"Error during simulation: {str(e)}")
