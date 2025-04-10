@@ -296,3 +296,13 @@ class AntiTheftGUI:
         try:
             for _ in range(10):
                 self.new_person()
+                # Add 1-5 random items
+                num_items = random.randint(1, 5)
+                for _ in range(num_items):
+                    item = random.choice(self.available_items)
+                    new_item = Item(item.name, item.tag_id, price=item.price, category=item.category)
+                    self.current_person.add_item(new_item)
+                    self.update_basket_display()
+                    self.update_button_states()
+                    self.root.update_idletasks()
+                    time.sleep(0.2)
