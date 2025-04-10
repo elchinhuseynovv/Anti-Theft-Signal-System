@@ -306,3 +306,43 @@ class AntiTheftGUI:
                     self.update_button_states()
                     self.root.update_idletasks()
                     time.sleep(0.2)
+                
+                # 30% chance to skip cashier
+                if random.random() < 0.3:
+                    self.skip_cashier()
+                else:
+                    self.go_to_cashier()
+                
+                self.pass_through_gate()
+                time.sleep(0.5)
+        except Exception as e:
+            messagebox.showerror("Simulation Error", f"Error during simulation: {str(e)}")
+
+    def update_button_states(self):
+        """Update the state of all buttons based on current conditions."""
+        state = tk.NORMAL if self.current_person.items else tk.DISABLED
+        self.cashier_button.configure(state=state)
+        self.gate_button.configure(state=state)
+        self.clear_button.configure(state=state)
+        self.skip_cashier_button.configure(state=state)
+
+    def update_basket_display(self):
+        """Update the basket display with current items."""
+        self.basket_display.config(state=tk.NORMAL)
+        self.basket_display.delete(1.0, tk.END)
+        if self.current_person.items:
+            total = 0.0
+            for item in self.current_person.items:
+                status = "✅ Deactivated" if item.is_deactivated else "🔴 Active"
+                self.basket_display.insert(tk.END, 
+                    f"• {item.name} (${item.price:.2f}) - {status}\n")
+                total += item.price
+            self.basket_display.insert(tk.END, f"\nTotal: ${total:.2f}")
+        else:
+            self.basket_display.insert(tk.END, "Basket is empty")
+        self.basket_display.config(state=tk.DISABLED)
+
+    def update_status(self, message, is_alert=False):
+        """Update the status message."""
+        color = '#ff0000' if is_alert else '#008000'
+        self.status_label.configure(text=message, foreground=color)
