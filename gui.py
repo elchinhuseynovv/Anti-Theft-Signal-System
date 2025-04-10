@@ -277,3 +277,22 @@ class AntiTheftGUI:
             fg='#000000'
         )
         self.log_text.grid(row=0, column=0, sticky="nsew")
+
+        # Add scrollbar to log
+        scrollbar = ttk.Scrollbar(
+            self.log_frame,
+            orient="vertical",
+            command=self.log_text.yview
+        )
+        scrollbar.grid(row=0, column=1, sticky="ns")
+        self.log_text.configure(yscrollcommand=scrollbar.set)
+
+        # Configure grid weights
+        self.root.grid_rowconfigure(7, weight=1)
+        self.root.grid_columnconfigure(0, weight=1)
+
+    def simulate_random_customers(self):
+        """Simulate multiple customers with random behaviors."""
+        try:
+            for _ in range(10):
+                self.new_person()
