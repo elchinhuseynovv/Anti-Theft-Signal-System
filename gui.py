@@ -255,3 +255,25 @@ class AntiTheftGUI:
             foreground='#666666'
         )
         self.status_label.pack()
+
+        # System Log Frame
+        self.log_frame = ttk.LabelFrame(
+            self.root, 
+            text="System Log", 
+            padding="20 10 20 20"
+        )
+        self.log_frame.grid(row=7, column=0, padx=20, pady=10, sticky="nsew")
+        self.log_frame.columnconfigure(0, weight=1)
+        self.log_frame.rowconfigure(0, weight=1)
+
+        # Log display with custom font and colors
+        self.log_text = tk.Text(
+            self.log_frame,
+            height=15,
+            width=70,
+            font=self.log_font,
+            wrap=tk.WORD,
+            bg='#ffffff',
+            fg='#000000'
+        )
+        self.log_text.grid(row=0, column=0, sticky="nsew")
