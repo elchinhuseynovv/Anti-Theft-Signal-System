@@ -73,154 +73,185 @@ class AntiTheftGUI:
         self.create_widgets()
         self.update_button_states()
 
-    def simulate_random_customers(self):
-        """Simulate multiple customers with random behaviors."""
-        try:
-            for _ in range(10):
-                self.new_person()
-                # Add 1-5 random items
-                num_items = random.randint(1, 5)
-                for _ in range(num_items):
-                    item = random.choice(self.available_items)
-                    new_item = Item(item.name, item.tag_id, price=item.price, category=item.category)
-                    self.current_person.add_item(new_item)
-                    self.update_basket_display()
-                    self.update_button_states()
-                    self.root.update_idletasks()
-                    time.sleep(0.2)
-                
-                # 30% chance to skip cashier
-                if random.random() < 0.3:
-                    self.skip_cashier()
-                else:
-                    self.go_to_cashier()
-                
-                self.pass_through_gate()
-                time.sleep(0.5)
-        except Exception as e:
-            messagebox.showerror("Simulation Error", f"Error during simulation: {str(e)}")
-
     def create_widgets(self):
         """Create all GUI widgets."""
-        # [Previous widget creation code remains the same]
-        # Include all the widget creation code from the original file here
-        pass  # Remove this line when adding the widget creation code
+        # Title and Person Info Frame
+        title_frame = ttk.Frame(self.root, padding="20 20 20 10")
+        title_frame.grid(row=0, column=0, sticky="ew")
+        
+        title_label = ttk.Label(
+            title_frame, 
+            text="Supermarket Anti-Theft System", 
+            font=('Helvetica', 16, 'bold')
+        )
+        title_label.pack(side="left", padx=10)
 
-    def update_button_states(self):
-        """Update the state of all buttons based on current conditions."""
-        state = tk.NORMAL if self.current_person.items else tk.DISABLED
-        self.cashier_button.configure(state=state)
-        self.gate_button.configure(state=state)
-        self.clear_button.configure(state=state)
-        self.skip_cashier_button.configure(state=state)
+        self.person_label = ttk.Label(
+            title_frame,
+            text=f"Current Customer: {self.current_person.name}",
+            font=self.header_font
+        )
+        self.person_label.pack(side="right", padx=10)
 
-    def update_basket_display(self):
-        """Update the basket display with current items."""
-        self.basket_display.config(state=tk.NORMAL)
-        self.basket_display.delete(1.0, tk.END)
-        if self.current_person.items:
-            total = 0.0
-            for item in self.current_person.items:
-                status = "✅ Deactivated" if item.is_deactivated else "🔴 Active"
-                self.basket_display.insert(tk.END, 
-                    f"• {item.name} (${item.price:.2f}) - {status}\n")
-                total += item.price
-            self.basket_display.insert(tk.END, f"\nTotal: ${total:.2f}")
-        else:
-            self.basket_display.insert(tk.END, "Basket is empty")
+        # Stats Frame
+        stats_frame = ttk.Frame(self.root, padding="20 10")
+        stats_frame.grid(row=1, column=0, sticky="ew", padx=20)
+        
+        self.alert_label = ttk.Label(
+            stats_frame,
+            text="Total Alerts: 0",
+            font=self.header_font,
+            foreground='red'
+        )
+        self.alert_label.pack(side="left")
+
+        new_person_btn = ttk.Button(
+            stats_frame,
+            text="New Person",
+            command=self.new_person
+        )
+        new_person_btn.pack(side="right")
+
+        # Analysis Frame
+        analysis_frame = ttk.LabelFrame(
+            self.root,
+            text="Analysis Tools",
+            padding="20 10 20 20"
+        )
+        analysis_frame.grid(row=2, column=0, padx=20, pady=10, sticky="ew")
+
+        ttk.Button(
+            analysis_frame,
+            text="Show Statistics",
+            command=lambda: StatisticsWindow(self.root, self.safe_scan_counter, self.alert_counter)
+        ).pack(side="left", padx=5)
+
+        ttk.Button(
+            analysis_frame,
+            text="Simulate Random Customers",
+            command=self.simulate_random_customers
+        ).pack(side="left", padx=5)
+
+        ttk.Button(
+            analysis_frame,
+            text="Generate Report",
+            command=lambda: self.logger.generate_report(
+                self.person_counter,
+                self.alert_counter,
+                self.safe_scan_counter,
+                self.alert_history
+            )
+        ).pack(side="left", padx=5)
+
+        # Item Selection Frame
+        self.item_frame = ttk.LabelFrame(
+            self.root, 
+            text="Add Items to Basket", 
+            padding="20 10 20 20"
+        )
+        self.item_frame.grid(row=3, column=0, padx=20, pady=10, sticky="ew")
+
+        # Configure item frame grid
+        self.item_frame.columnconfigure(1, weight=1)
+        
+        # Item selection widgets
+        ttk.Label(
+            self.item_frame, 
+            text="Select Item:", 
+            font=self.header_font
+        ).grid(row=0, column=0, padx=5, pady=5)
+        
+        self.item_var = tk.StringVar()
+        item_names = [item.name for item in self.available_items]
+        self.item_dropdown = ttk.Combobox(
+            self.item_frame, 
+            textvariable=self.item_var, 
+            values=item_names,
+            width=30
+        )
+        self.item_dropdown.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
+        
+        self.add_button = ttk.Button(
+            self.item_frame, 
+            text="Add to Basket",
+            command=self.add_item
+        )
+        self.add_button.grid(row=0, column=2, padx=5, pady=5)
+
+        # Current Basket Frame
+        self.basket_frame = ttk.LabelFrame(
+            self.root,
+            text="Current Basket",
+            padding="20 10 20 20"
+        )
+        self.basket_frame.grid(row=4, column=0, padx=20, pady=10, sticky="ew")
+        
+        # Basket display
+        self.basket_display = tk.Text(
+            self.basket_frame,
+            height=5,
+            width=70,
+            font=self.text_font,
+            wrap=tk.WORD,
+            bg='#ffffff',
+            fg='#000000'
+        )
+        self.basket_display.pack(fill=tk.BOTH, expand=True)
         self.basket_display.config(state=tk.DISABLED)
 
-    def update_status(self, message, is_alert=False):
-        """Update the status message."""
-        color = '#ff0000' if is_alert else '#008000'
-        self.status_label.configure(text=message, foreground=color)
+        # Actions Frame
+        self.action_frame = ttk.LabelFrame(
+            self.root, 
+            text="Actions", 
+            padding="20 10 20 20"
+        )
+        self.action_frame.grid(row=5, column=0, padx=20, pady=10, sticky="ew")
 
-    def new_person(self):
-        """Create a new person."""
-        self.person_counter += 1
-        self.current_person = Person(f"Person {self.person_counter}")
-        if hasattr(self, 'person_label'):
-            self.person_label.configure(text=f"Current Customer: {self.current_person.name}")
-            self.clear_basket()
-            self.update_status(f"New customer: {self.current_person.name}")
+        # Action buttons with improved styling
+        style = ttk.Style()
+        style.configure('Action.TButton', font=self.text_font)
+        style.configure('Alert.TButton', foreground='red')
 
-    def add_item(self):
-        """Add an item to the current person's basket."""
-        selected_item_name = self.item_var.get()
-        if selected_item_name:
-            for item in self.available_items:
-                if item.name == selected_item_name:
-                    new_item = Item(item.name, item.tag_id, 
-                                  price=item.price, category=item.category)
-                    self.current_person.add_item(new_item)
-                    self.log_text.insert("end", 
-                        f"➕ Added {new_item.name} (${new_item.price:.2f}) to basket\n")
-                    self.log_text.see("end")
-                    self.update_basket_display()
-                    self.update_button_states()
-                    self.update_status(f"Added {new_item.name} to basket")
-                    break
+        self.cashier_button = ttk.Button(
+            self.action_frame, 
+            text="Go to Cashier",
+            style='Action.TButton',
+            command=self.go_to_cashier
+        )
+        self.cashier_button.pack(side="left", padx=10)
 
-    def clear_basket(self):
-        """Clear all items from the current basket."""
-        self.current_person.items = []
-        self.update_basket_display()
-        self.update_button_states()
-        self.update_status("Basket has been cleared")
+        self.skip_cashier_button = ttk.Button(
+            self.action_frame,
+            text="Skip Cashier",
+            style='Alert.TButton',
+            command=self.skip_cashier
+        )
+        self.skip_cashier_button.pack(side="left", padx=10)
 
-    def go_to_cashier(self):
-        """Process items through the cashier."""
-        if not self.current_person.items:
-            messagebox.showwarning("Empty Basket", "No items in the basket!")
-            return
+        self.gate_button = ttk.Button(
+            self.action_frame, 
+            text="Pass Through Gate",
+            style='Action.TButton',
+            command=self.pass_through_gate
+        )
+        self.gate_button.pack(side="left", padx=10)
+
+        self.clear_button = ttk.Button(
+            self.action_frame, 
+            text="Clear Basket",
+            style='Action.TButton',
+            command=self.clear_basket
+        )
+        self.clear_button.pack(side="left", padx=10)
+
+        # Status Label Frame
+        self.status_frame = ttk.Frame(self.root, padding="20 10 20 10")
+        self.status_frame.grid(row=6, column=0, sticky="ew", padx=20)
         
-        try:
-            result = self.cashier.scan_and_deactivate(self.current_person, 
-                lambda msg: self.update_log_with_delay(msg))
-            self.update_basket_display()
-            self.update_status("All items have been scanned and deactivated")
-        except Exception as e:
-            messagebox.showerror("Cashier Error", f"Error during checkout: {str(e)}")
-
-    def skip_cashier(self):
-        """Skip the cashier (simulating potential theft)."""
-        if not self.current_person.items:
-            messagebox.showwarning("Empty Basket", "No items in the basket!")
-            return
-        
-        self.log_text.insert("end", f"\n⚠️ {self.current_person.name} is skipping the cashier!\n")
-        self.log_text.see("end")
-        self.update_status("⚠️ Skipping cashier!", True)
-        self.pass_through_gate()
-
-    def pass_through_gate(self):
-        """Process the current person through the security gate."""
-        if not self.current_person.items:
-            messagebox.showwarning("Empty Basket", "No items to scan!")
-            return
-        
-        try:
-            result, alert_triggered = self.gate.scan(self.current_person)
-            self.log_text.insert("end", result)
-            self.log_text.see("end")
-            
-            if alert_triggered:
-                self.alert_counter += 1
-                self.alert_history.append(self.current_person.name)
-                self.alert_label.configure(text=f"Total Alerts: {self.alert_counter}")
-                self.update_status("🚨 ALERT: Active tag detected!", True)
-            else:
-                self.safe_scan_counter += 1
-                self.update_status("✅ All items are safe. No alert.")
-            
-            self.logger.log_gate_scan(self.current_person, alert_triggered)
-            
-        except Exception as e:
-            messagebox.showerror("Gate Error", f"Error during gate scan: {str(e)}")
-
-    def update_log_with_delay(self, message):
-        """Update the log with a delay for visual effect."""
-        self.log_text.insert("end", message)
-        self.log_text.see("end")
-        self.root.update_idletasks()
-        time.sleep(0.5)
+        self.status_label = ttk.Label(
+            self.status_frame,
+            text="Ready to scan items",
+            font=self.status_font,
+            foreground='#666666'
+        )
+        self.status_label.pack()
