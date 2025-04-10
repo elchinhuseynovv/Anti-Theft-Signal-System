@@ -346,3 +346,29 @@ class AntiTheftGUI:
         """Update the status message."""
         color = '#ff0000' if is_alert else '#008000'
         self.status_label.configure(text=message, foreground=color)
+
+    def new_person(self):
+        """Create a new person."""
+        self.person_counter += 1
+        self.current_person = Person(f"Person {self.person_counter}")
+        if hasattr(self, 'person_label'):
+            self.person_label.configure(text=f"Current Customer: {self.current_person.name}")
+            self.clear_basket()
+            self.update_status(f"New customer: {self.current_person.name}")
+
+    def add_item(self):
+        """Add an item to the current person's basket."""
+        selected_item_name = self.item_var.get()
+        if selected_item_name:
+            for item in self.available_items:
+                if item.name == selected_item_name:
+                    new_item = Item(item.name, item.tag_id, 
+                                  price=item.price, category=item.category)
+                    self.current_person.add_item(new_item)
+                    self.log_text.insert("end", 
+                        f"➕ Added {new_item.name} (${new_item.price:.2f}) to basket\n")
+                    self.log_text.see("end")
+                    self.update_basket_display()
+                    self.update_button_states()
+                    self.update_status(f"Added {new_item.name} to basket")
+                    break
