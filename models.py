@@ -24,7 +24,7 @@ class Item:
 
     def __str__(self):
         status = "Deactivated" if self.is_deactivated else "Active"
-        return f"{self.name} (Tag: {self.tag_id}, {status})"
+        return f"{self.name} (Tag: {self.tag_id}, {status}, ${self.price:.2f})"
 
     def deactivate(self):
         """Deactivate the item's RFID tag."""
@@ -63,12 +63,14 @@ class Person:
     def add_item(self, item):
         """Add an item to the person's possession."""
         self.items.append(item)
+        self.calculate_total()
         return f"Added {item.name} to {self.name}'s basket"
 
     def remove_item(self, item):
         """Remove an item from the person's possession."""
         if item in self.items:
             self.items.remove(item)
+            self.calculate_total()
             return f"Removed {item.name} from {self.name}'s basket"
         return f"{item.name} not found in {self.name}'s basket"
 
@@ -82,7 +84,7 @@ class Person:
         return self.total_spent
 
     def __str__(self):
-        return f"{self.name} is carrying {len(self.items)} item(s)."
+        return f"{self.name} is carrying {len(self.items)} item(s) worth ${self.total_spent:.2f}"
 
 
 class Cashier:
@@ -111,7 +113,7 @@ class Cashier:
         result = f"\n🧾 {self.name} is scanning {person.name}'s items at the checkout...\n"
         
         for item in person.items:
-            scan_msg = f" - Scanning {item.name}... ✅ Tag deactivated.\n"
+            scan_msg = f" - Scanning {item.name} (${item.price:.2f})... ✅ Tag deactivated.\n"
             result += scan_msg
             item.deactivate()
             self.items_processed += 1
@@ -121,6 +123,7 @@ class Cashier:
                 callback(scan_msg)
                 time.sleep(0.5)
         
+        result += f"\nTotal: ${person.total_spent:.2f}\n"
         return result
 
     def get_stats(self):
@@ -162,11 +165,12 @@ class Gate:
         for item in person.items:
             result += f" - Checking item: {item}\n"
             if not item.is_deactivated:
-                result += "   🔴 ALERT: Active tag detected! Possible theft!\n"
+                result += f"   🔴 ALERT: Active tag detected on {item.name} (${item.price:.2f})!\n"
                 alert_triggered = True
         
         if alert_triggered:
             self.alerts_triggered += 1
+            result += f"\n⚠️ Total value of items with active tags: ${person.total_spent:.2f}\n"
         else:
             result += "✅ All items are safe. No alert.\n"
         
