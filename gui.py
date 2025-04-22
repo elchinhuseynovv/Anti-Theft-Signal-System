@@ -52,6 +52,8 @@ class AntiTheftGUI:
         self.alert_counter = 0
         self.safe_scan_counter = 0
         self.alert_history = []
+        self.total_revenue = 0.0
+        self.total_prevented_theft = 0.0
         
         # Initialize logger
         self.logger = SystemLogger()
@@ -62,7 +64,13 @@ class AntiTheftGUI:
             Item("Bread", "RFID002", price=2.49, category="Bakery"),
             Item("Cheese", "RFID003", price=4.99, category="Dairy"),
             Item("Coffee", "RFID004", price=7.99, category="Beverages"),
-            Item("Chocolate", "RFID005", price=1.99, category="Snacks")
+            Item("Chocolate", "RFID005", price=1.99, category="Snacks"),
+            # Add more items
+            Item("Apple", "RFID006", price=0.99, category="Produce"),
+            Item("Cereal", "RFID007", price=5.99, category="Breakfast"),
+            Item("Chips", "RFID008", price=3.49, category="Snacks"),
+            Item("Soda", "RFID009", price=2.99, category="Beverages"),
+            Item("Eggs", "RFID010", price=4.49, category="Dairy")
         ]
 
         # Create first person and system components
@@ -72,6 +80,17 @@ class AntiTheftGUI:
 
         self.create_widgets()
         self.update_button_states()
+        
+        # Set up keyboard shortcuts
+        self.setup_shortcuts()
+
+    def setup_shortcuts(self):
+        """Set up keyboard shortcuts for common actions."""
+        self.root.bind('<Control-n>', lambda e: self.new_person())
+        self.root.bind('<Control-a>', lambda e: self.add_item())
+        self.root.bind('<Control-c>', lambda e: self.clear_basket())
+        self.root.bind('<Control-g>', lambda e: self.go_to_cashier())
+        self.root.bind('<Control-p>', lambda e: self.pass_through_gate())
 
     def create_widgets(self):
         """Create all GUI widgets."""
@@ -112,6 +131,26 @@ class AntiTheftGUI:
         )
         new_person_btn.pack(side="right")
 
+        # Revenue Display
+        revenue_frame = ttk.Frame(self.root, padding="20 10")
+        revenue_frame.grid(row=1, column=1, sticky="ew", padx=20)
+        
+        self.revenue_label = ttk.Label(
+            revenue_frame,
+            text="Total Revenue: $0.00",
+            font=self.header_font,
+            foreground='green'
+        )
+        self.revenue_label.pack(side="left")
+        
+        self.prevented_theft_label = ttk.Label(
+            revenue_frame,
+            text="Prevented Theft: $0.00",
+            font=self.header_font,
+            foreground='blue'
+        )
+        self.prevented_theft_label.pack(side="right")
+
         # Analysis Frame
         analysis_frame = ttk.LabelFrame(
             self.root,
@@ -142,6 +181,32 @@ class AntiTheftGUI:
                 self.alert_history
             )
         ).pack(side="left", padx=5)
+
+        # Search Bar
+        search_frame = ttk.Frame(self.root, padding="20 10")
+        search_frame.grid(row=2, column=1, sticky="ew", padx=20)
+        
+        ttk.Label(
+            search_frame,
+            text="Search Items:",
+            font=self.text_font
+        ).pack(side="left")
+        
+        self.search_var = tk.StringVar()
+        self.search_var.trace('w', lambda *args: self.update_item_list())
+        
+        search_entry = ttk.Entry(
+            search_frame,
+            textvariable=self.search_var
+        )
+        search_entry.pack(side="left", padx=5, fill="x", expand=True)
+        
+        # Add Shortcuts Help Button
+        ttk.Button(
+            search_frame,
+            text="Keyboard Shortcuts",
+            command=self.show_shortcuts
+        ).pack(side="right")
 
         # Item Selection Frame
         self.item_frame = ttk.LabelFrame(
@@ -177,6 +242,34 @@ class AntiTheftGUI:
             command=self.add_item
         )
         self.add_button.grid(row=0, column=2, padx=5, pady=5)
+
+        # Category Filter
+        filter_frame = ttk.LabelFrame(
+            self.root,
+            text="Filter by Category",
+            padding="20 10 20 20"
+        )
+        filter_frame.grid(row=3, column=1, padx=20, pady=10, sticky="ew")
+        
+        categories = sorted(set(item.category for item in self.available_items))
+        self.category_var = tk.StringVar(value="All")
+        
+        ttk.Radiobutton(
+            filter_frame,
+            text="All",
+            variable=self.category_var,
+            value="All",
+            command=self.update_item_list
+        ).pack(anchor="w")
+        
+        for category in categories:
+            ttk.Radiobutton(
+                filter_frame,
+                text=category,
+                variable=self.category_var,
+                value=category,
+                command=self.update_item_list
+            ).pack(anchor="w")
 
         # Current Basket Frame
         self.basket_frame = ttk.LabelFrame(
@@ -295,6 +388,39 @@ class AntiTheftGUI:
         self.root.grid_rowconfigure(7, weight=1)
         self.root.grid_columnconfigure(0, weight=1)
 
+    def show_shortcuts(self):
+        """Display keyboard shortcuts help window."""
+        shortcuts = """
+        Keyboard Shortcuts:
+        ------------------
+        Ctrl + N: New Person
+        Ctrl + A: Add Item
+        Ctrl + C: Clear Basket
+        Ctrl + G: Go to Cashier
+        Ctrl + P: Pass Through Gate
+        """
+        messagebox.showinfo("Keyboard Shortcuts", shortcuts)
+
+    def update_item_list(self):
+        """Update the item dropdown based on category filter and search."""
+        selected_category = self.category_var.get()
+        search_text = self.search_var.get().lower()
+        
+        filtered_items = [
+            item.name for item in self.available_items
+            if (selected_category == "All" or item.category == selected_category)
+            and (search_text == "" or search_text in item.name.lower())
+        ]
+        
+        self.item_dropdown['values'] = filtered_items
+        if filtered_items and not self.item_var.get() in filtered_items:
+            self.item_var.set(filtered_items[0])
+
+    def update_revenue_display(self):
+        """Update the revenue and prevented theft displays."""
+        self.revenue_label.configure(text=f"Total Revenue: ${self.total_revenue:.2f}")
+        self.prevented_theft_label.configure(text=f"Prevented Theft: ${self.total_prevented_theft:.2f}")
+
     def update_button_states(self):
         """Update the state of all buttons based on current conditions."""
         state = tk.NORMAL if self.current_person.items else tk.DISABLED
@@ -358,88 +484,3 @@ class AntiTheftGUI:
         self.update_basket_display()
         self.update_button_states()
         self.update_status("Basket has been cleared")
-
-    def go_to_cashier(self):
-        """Process items through the cashier."""
-        if not self.current_person.items:
-            messagebox.showwarning("Empty Basket", "No items in the basket!")
-            return
-        
-        try:
-            result = self.cashier.scan_and_deactivate(self.current_person, 
-                lambda msg: self.update_log_with_delay(msg))
-            self.update_basket_display()
-            self.update_status("All items have been scanned and deactivated")
-        except Exception as e:
-            messagebox.showerror("Cashier Error", f"Error during checkout: {str(e)}")
-
-    def skip_cashier(self):
-        """Skip the cashier (simulating potential theft)."""
-        if not self.current_person.items:
-            messagebox.showwarning("Empty Basket", "No items in the basket!")
-            return
-        
-        self.log_text.insert("end", f"\n⚠️ {self.current_person.name} is skipping the cashier!\n")
-        self.log_text.see("end")
-        self.update_status("⚠️ Skipping cashier!", True)
-        self.pass_through_gate()
-
-    def pass_through_gate(self):
-        """Process the current person through the security gate."""
-        if not self.current_person.items:
-            messagebox.showwarning("Empty Basket", "No items to scan!")
-            return
-        
-        try:
-            result, alert_triggered = self.gate.scan(self.current_person)
-            self.log_text.insert("end", result)
-            self.log_text.see("end")
-            
-            if alert_triggered:
-                self.alert_counter += 1
-                self.alert_history.append(self.current_person.name)
-                self.alert_label.configure(text=f"Total Alerts: {self.alert_counter}")
-                self.update_status("🚨 ALERT: Active tag detected!", True)
-            else:
-                self.safe_scan_counter += 1
-                self.update_status("✅ All items are safe. No alert.")
-            
-            self.logger.log_gate_scan(self.current_person, alert_triggered)
-            
-        except Exception as e:
-            messagebox.showerror("Gate Error", f"Error during gate scan: {str(e)}")
-
-    def update_log_with_delay(self, message):
-        """Update the log with a delay for visual effect."""
-        self.log_text.insert("end", message)
-        self.log_text.see("end")
-        self.root.update_idletasks()
-        time.sleep(0.5)
-
-    def simulate_random_customers(self):
-        """Simulate multiple customers with random behaviors."""
-        try:
-            for _ in range(10):
-                self.new_person()
-                # Add 1-5 random items
-                num_items = random.randint(1, 5)
-                for _ in range(num_items):
-                    item = random.choice(self.available_items)
-                    new_item = Item(item.name, item.tag_id, 
-                                  price=item.price, category=item.category)
-                    self.current_person.add_item(new_item)
-                    self.update_basket_display()
-                    self.update_button_states()
-                    self.root.update_idletasks()
-                    time.sleep(0.2)
-                
-                # 30% chance to skip cashier
-                if random.random() < 0.3:
-                    self.skip_cashier()
-                else:
-                    self.go_to_cashier()
-                
-                self.pass_through_gate()
-                time.sleep(0.5)
-        except Exception as e:
-            messagebox.showerror("Simulation Error", f"Error during simulation: {str(e)}")
