@@ -233,3 +233,49 @@ class Cashier:
             "performance_metrics": self.performance_metrics
         }
 
+
+class Gate:
+    """
+    Represents a security gate that can detect active RFID tags.
+    
+    Attributes:
+        total_scans (int): Total number of scans performed
+        alerts_triggered (int): Number of alerts triggered
+    """
+    
+    def __init__(self):
+        self.total_scans = 0
+        self.alerts_triggered = 0
+        self.scan_history = []
+        self.peak_times = {}
+        self.alert_patterns = {}
+
+    def scan(self, person):
+        """
+        Scan a person for active RFID tags.
+        
+        Args:
+            person (Person): The person to scan
+            
+        Returns:
+            tuple: (scan result message, alert triggered flag)
+        """
+        scan_start = datetime.now()
+        self.total_scans += 1
+        result = f"\n🚪 Scanning {person.name} at the exit gate...\n"
+        alert_triggered = False
+        active_tags = []
+        
+        for item in person.items:
+            result += f" - Checking item: {item}\n"
+            if not item.is_deactivated:
+                result += f"   🔴 ALERT: Active tag detected on {item.name} (${item.price:.2f})!\n"
+                alert_triggered = True
+                active_tags.append(item.tag_id)
+        
+        if alert_triggered:
+            self.alerts_triggered += 1
+            result += f"\n⚠️ Total value of items with active tags: ${person.total_spent:.2f}\n"
+        else:
+            result += "✅ All items are safe. No alert.\n"
+       
