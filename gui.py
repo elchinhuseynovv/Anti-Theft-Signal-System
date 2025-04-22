@@ -517,4 +517,37 @@ class AntiTheftGUI:
         if not self.current_person.items:
             messagebox.showwarning("Empty Basket", "No items to scan!")
             return
-     
+        
+        try:
+            result, alert_triggered = self.gate.scan(self.current_person)
+            self.log_text.insert("end", result)
+            self.log_text.see("end")
+            
+            if alert_triggered:
+                self.alert_counter += 1
+                self.alert_history.append(self.current_person.name)
+                self.alert_label.configure(text=f"Total Alerts: {self.alert_counter}")
+                self.total_prevented_theft += self.current_person.calculate_total()
+                self.update_revenue_display()
+                self.update_status("🚨 ALERT: Active tag detected!", True)
+            else:
+                self.safe_scan_counter += 1
+                self.update_status("✅ All items are safe. No alert.")
+            
+            self.logger.log_gate_scan(self.current_person, alert_triggered)
+            
+        except Exception as e:
+            messagebox.showerror("Gate Error", f"Error during gate scan: {str(e)}")
+
+    def update_log_with_delay(self, message):
+        """Update the log with a delay for visual effect."""
+        self.log_text.insert("end", message)
+        self.log_text.see("end")
+        self.root.update_idletasks()
+        time.sleep(0.5)
+
+    def simulate_random_customers(self):
+        """Simulate multiple customers with random behaviors."""
+        try:
+            for _ in range(10):
+                self.new_person()
