@@ -278,4 +278,18 @@ class Gate:
             result += f"\n⚠️ Total value of items with active tags: ${person.total_spent:.2f}\n"
         else:
             result += "✅ All items are safe. No alert.\n"
-       
+        
+        # Log scan details
+        hour = scan_start.hour
+        self.peak_times[hour] = self.peak_times.get(hour, 0) + 1
+        
+        scan_record = {
+            'timestamp': scan_start,
+            'person': person.name,
+            'items': len(person.items),
+            'alert_triggered': alert_triggered,
+            'active_tags': active_tags,
+            'duration': (datetime.now() - scan_start).total_seconds()
+        }
+        self.scan_history.append(scan_record)
+        
