@@ -195,3 +195,41 @@ class Cashier:
                 callback(scan_msg)
                 time.sleep(0.5)
         
+        # Log transaction
+        self.transaction_history.append({
+            'timestamp': transaction_start,
+            'customer': person.name,
+            'items': len(person.items),
+            'total': person.total_spent,
+            'duration': (datetime.now() - transaction_start).total_seconds()
+        })
+        
+        result += f"\nTotal: ${person.total_spent:.2f}\n"
+        return result
+
+    def get_shift_summary(self):
+        """Get a summary of the cashier's current shift."""
+        return {
+            'cashier': self.name,
+            'shift_start': self.shift_start,
+            'duration': (datetime.now() - self.shift_start).total_seconds(),
+            'items_processed': self.items_processed,
+            'total_sales': self.total_sales,
+            'avg_scan_time': self.performance_metrics['avg_scan_time'],
+            'successful_deactivations': self.performance_metrics['successful_deactivations'],
+            'transaction_count': len(self.transaction_history)
+        }
+
+    def get_transaction_history(self):
+        """Get the complete transaction history."""
+        return self.transaction_history
+
+    def get_stats(self):
+        """Get cashier's performance statistics."""
+        return {
+            "name": self.name,
+            "items_processed": self.items_processed,
+            "total_sales": self.total_sales,
+            "performance_metrics": self.performance_metrics
+        }
+
